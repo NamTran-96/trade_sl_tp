@@ -1,0 +1,107 @@
+module.exports = [
+"[project]/Desktop/FTECH_PROJECTS/2026/TradeSLTP/messages/vi.json.[json].cjs [app-rsc] (ecmascript)", ((__turbopack_context__, module, exports) => {
+
+module.exports = {
+    "metadata": {
+        "title": "Máy Tính SL/TP - Công Cụ Quản Lý Rủi Ro Giao Dịch Miễn Phí",
+        "description": "Máy tính Stop Loss & Take Profit miễn phí cho trader forex. Tính toán chính xác giá SL/TP để quản lý rủi ro giao dịch hiệu quả."
+    },
+    "header": {
+        "title": "Máy Tính SL/TP",
+        "language": "Ngôn ngữ"
+    },
+    "hero": {
+        "badge": "Công Cụ Miễn Phí",
+        "title": "Máy Tính SL/TP Thông Minh",
+        "subtitle": "cho Quản Lý Rủi Ro Tốt Hơn",
+        "description": "Tính toán giá Stop Loss và Take Profit ngay lập tức. Đưa ra quyết định giao dịch sáng suốt với máy tính chuyên nghiệp được hàng nghìn trader trên toàn thế giới tin dùng.",
+        "cta": "Sử Dụng Ngay",
+        "secondaryCta": "Xem Hướng Dẫn"
+    },
+    "calculator": {
+        "title": "Tính Toán Giá SL/TP",
+        "accountBalance": "Số Dư Tài Khoản",
+        "accountBalancePlaceholder": "vd: 10000",
+        "side": "Hướng Lệnh",
+        "selectSide": "Chọn hướng",
+        "buy": "MUA",
+        "sell": "BÁN",
+        "slPercent": "% Stop Loss",
+        "slPercentPlaceholder": "vd: 2",
+        "tpPercent": "% Take Profit",
+        "tpPercentPlaceholder": "vd: 4",
+        "lot": "Khối Lượng (Lot)",
+        "lotPlaceholder": "vd: 0.5",
+        "symbol": "Cặp Tiền",
+        "selectSymbol": "Chọn cặp tiền",
+        "entryPrice": "Giá Vào Lệnh",
+        "entryPricePlaceholder": "Giá thị trường hiện tại",
+        "calculate": "TÍNH TOÁN",
+        "reset": "Đặt Lại",
+        "calculating": "Đang tính..."
+    },
+    "results": {
+        "title": "Kết Quả Tính Toán",
+        "slPrice": "Giá Stop Loss",
+        "tpPrice": "Giá Take Profit",
+        "copy": "Sao chép",
+        "copied": "Đã sao chép!",
+        "slPips": "Khoảng cách SL (Pips)",
+        "tpPips": "Khoảng cách TP (Pips)",
+        "potentialLoss": "Lỗ Tiềm Năng",
+        "potentialProfit": "Lời Tiềm Năng",
+        "riskRewardRatio": "Tỷ Lệ Rủi Ro/Lợi Nhuận"
+    },
+    "features": {
+        "title": "Tại Sao Sử Dụng Công Cụ Này?",
+        "subtitle": "Công cụ chuyên nghiệp cho trader thông minh",
+        "feature1": {
+            "title": "Tính Toán Nhanh Chóng",
+            "description": "Nhận giá SL/TP ngay lập tức với hệ thống tính toán tối ưu. Không chờ đợi, không trì hoãn."
+        },
+        "feature2": {
+            "title": "Quản Lý Rủi Ro Dễ Dàng",
+            "description": "Xác định tỷ lệ rủi ro và để công cụ tính toán mức giá chính xác cho việc quản lý rủi ro nhất quán."
+        },
+        "feature3": {
+            "title": "Nhiều Cặp Tiền Forex",
+            "description": "Hỗ trợ các cặp tiền forex chính bao gồm EUR/USD, GBP/USD, USD/JPY, XAU/USD, và nhiều hơn nữa."
+        },
+        "feature4": {
+            "title": "100% Miễn Phí & Riêng Tư",
+            "description": "Không cần đăng ký. Dữ liệu của bạn được giữ trên thiết bị. Hoàn toàn miễn phí mãi mãi."
+        }
+    },
+    "howItWorks": {
+        "title": "Cách Sử Dụng",
+        "subtitle": "Quy trình 3 bước đơn giản",
+        "step1": {
+            "title": "Nhập Thông Số",
+            "description": "Nhập số dư tài khoản, chọn hướng giao dịch (MUA/BÁN), và xác định tỷ lệ rủi ro."
+        },
+        "step2": {
+            "title": "Chọn Cặp Tiền & Giá Vào Lệnh",
+            "description": "Chọn cặp tiền giao dịch và nhập giá thị trường hiện tại hoặc giá vào lệnh dự kiến."
+        },
+        "step3": {
+            "title": "Nhận Kết Quả",
+            "description": "Nhấn tính toán và nhận ngay giá SL và TP. Sao chép trực tiếp vào nền tảng giao dịch của bạn."
+        }
+    },
+    "footer": {
+        "disclaimer": "Tuyên bố miễn trừ: Công cụ này chỉ dành cho mục đích giáo dục. Giao dịch forex có rủi ro thua lỗ đáng kể. Hiệu suất trong quá khứ không đảm bảo kết quả tương lai. Luôn sử dụng quản lý rủi ro phù hợp.",
+        "copyright": "© 2026 Máy Tính SL/TP. Mọi quyền được bảo lưu.",
+        "terms": "Điều Khoản Dịch Vụ",
+        "privacy": "Chính Sách Bảo Mật"
+    },
+    "validation": {
+        "required": "Trường này là bắt buộc",
+        "positiveNumber": "Phải là số dương",
+        "percentRange": "Phải từ 0.1 đến 100",
+        "invalidSymbol": "Vui lòng chọn cặp tiền hợp lệ"
+    }
+};
+}),
+];
+
+//# sourceMappingURL=Desktop_FTECH_PROJECTS_2026_TradeSLTP_messages_vi_json_%5Bjson%5D_cjs_0i1i4g3._.js.map
