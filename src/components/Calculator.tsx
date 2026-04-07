@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { Copy, Check, TrendingUp, TrendingDown, DollarSign, Target } from 'lucide-react'
+import { Copy, Check, TrendingUp, TrendingDown, Target } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -13,7 +13,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { calculateSLTP, getSymbolOptions, type Side, type CalculationResult, SUPPORTED_SYMBOLS } from '@/lib/calculations'
+import { getSymbolOptions, type Side, type CalculationResult, SUPPORTED_SYMBOLS } from '@/lib/calculations'
+import { calculateSLTPFromApi } from '@/lib/api'
 import { useToast } from '@/hooks/use-toast'
 
 export function Calculator() {
@@ -22,7 +23,6 @@ export function Calculator() {
   const { toast } = useToast()
 
   // Form state
-  const [accountBalance, setAccountBalance] = useState('')
   const [side, setSide] = useState<Side | ''>('')
   const [slPercent, setSlPercent] = useState('')
   const [tpPercent, setTpPercent] = useState('')
@@ -32,20 +32,20 @@ export function Calculator() {
   
   // Result state
   const [result, setResult] = useState<CalculationResult | null>(null)
+  const [apiBalance, setApiBalance] = useState<number | null>(null)
+  const [askBid, setAskBid] = useState<{ ask: number; bid: number } | null>(null)
   const [isCalculating, setIsCalculating] = useState(false)
   const [copiedField, setCopiedField] = useState<string | null>(null)
 
   const symbolOptions = getSymbolOptions()
 
-  const handleCalculate = () => {
+  const handleCalculate = async () => {
     // Validation
-    const balance = parseFloat(accountBalance.replace(/,/g, ''))
     const sl = parseFloat(slPercent)
     const tp = parseFloat(tpPercent)
     const lotSize = parseFloat(lot)
     const entry = parseFloat(entryPrice)
 
-    if (!balance || balance <= 0) return
     if (!side) return
     if (!sl || sl < 0.1 || sl > 100) return
     if (!tp || tp < 0.1 || tp > 100) return
@@ -55,21 +55,29 @@ export function Calculator() {
 
     setIsCalculating(true)
 
-    // Simulate calculation delay
-    setTimeout(() => {
-      const calcResult = calculateSLTP({
-        accountBalance: balance,
-        side: side as Side,
-        slPercent: sl,
-        tpPercent: tp,
+    try {
+      const { result: calcResult, balance, ask, bid } = await calculateSLTPFromApi({
+        sl,
+        tp,
         lot: lotSize,
         symbol,
-        entryPrice: entry
+        side: side.toLowerCase(),
+        price: entry,
       })
 
       setResult(calcResult)
+      setApiBalance(balance)
+      setAskBid({ ask, bid })
+    } catch (err) {
+      toast({
+        title: 'Calculation Error',
+        description: err instanceof Error ? err.message : 'Failed to connect to API',
+        variant: 'destructive',
+        duration: 4000,
+      })
+    } finally {
       setIsCalculating(false)
-    }, 300)
+    }
   }
 
   const handleCopy = async (value: string, field: string) => {
@@ -84,7 +92,6 @@ export function Calculator() {
   }
 
   const handleReset = () => {
-    setAccountBalance('')
     setSide('')
     setSlPercent('')
     setTpPercent('')
@@ -92,14 +99,8 @@ export function Calculator() {
     setSymbol('')
     setEntryPrice('')
     setResult(null)
-  }
-
-  const formatBalance = (value: string) => {
-    const num = value.replace(/,/g, '').replace(/[^0-9.]/g, '')
-    if (!num) return ''
-    const parts = num.split('.')
-    parts[0] = parseInt(parts[0] || '0').toLocaleString('en-US')
-    return parts.join('.')
+    setApiBalance(null)
+    setAskBid(null)
   }
 
   const decimals = symbol ? SUPPORTED_SYMBOLS[symbol]?.decimals || 5 : 5
@@ -116,23 +117,6 @@ export function Calculator() {
 
             {/* Form */}
             <div className="p-6 space-y-5">
-              {/* Account Balance */}
-              <div className="space-y-2">
-                <Label htmlFor="accountBalance">{t('accountBalance')}</Label>
-                <div className="relative">
-                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="accountBalance"
-                    type="text"
-                    inputMode="decimal"
-                    placeholder={t('accountBalancePlaceholder')}
-                    value={accountBalance}
-                    onChange={(e) => setAccountBalance(formatBalance(e.target.value))}
-                    className="pl-9"
-                  />
-                </div>
-              </div>
-
               {/* Side & Symbol Row */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -326,9 +310,33 @@ export function Calculator() {
                   <div className="p-3 rounded-lg bg-purple-50 border border-purple-100 text-center">
                     <p className="text-sm text-purple-600">{tResults('riskRewardRatio')}</p>
                     <p className="text-xl font-bold text-purple-700">
-                      1 : {(result.potentialProfit / result.potentialLoss).toFixed(2)}
+                      1 : {result.potentialLoss > 0 ? (result.potentialProfit / result.potentialLoss).toFixed(2) : '∞'}
                     </p>
                   </div>
+
+                  {/* Account Balance & Market Price from API */}
+                  {(apiBalance || askBid) && (
+                    <div className="grid grid-cols-3 gap-2">
+                      {apiBalance && (
+                        <div className="p-3 rounded-lg bg-gray-50 border border-gray-100 text-center">
+                          <p className="text-xs text-gray-500">{t('accountBalance')}</p>
+                          <p className="text-sm font-bold text-gray-700">${apiBalance.toLocaleString()}</p>
+                        </div>
+                      )}
+                      {askBid && (
+                        <>
+                          <div className="p-3 rounded-lg bg-green-50 border border-green-100 text-center">
+                            <p className="text-xs text-green-600">Ask</p>
+                            <p className="text-sm font-bold text-green-700">{askBid.ask.toFixed(decimals)}</p>
+                          </div>
+                          <div className="p-3 rounded-lg bg-red-50 border border-red-100 text-center">
+                            <p className="text-xs text-red-600">Bid</p>
+                            <p className="text-sm font-bold text-red-700">{askBid.bid.toFixed(decimals)}</p>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
