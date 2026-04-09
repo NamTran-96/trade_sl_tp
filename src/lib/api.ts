@@ -16,6 +16,7 @@ export interface ApiCalculateRequest {
   symbol: string
   side: string
   price: number
+  balance: number
 }
 
 export interface ApiCalculateResponse {

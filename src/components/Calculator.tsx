@@ -23,6 +23,7 @@ export function Calculator() {
   const { toast } = useToast()
 
   // Form state
+  const [balance, setBalance] = useState('')
   const [side, setSide] = useState<Side | ''>('')
   const [slPercent, setSlPercent] = useState('')
   const [tpPercent, setTpPercent] = useState('')
@@ -45,7 +46,9 @@ export function Calculator() {
     const tp = parseFloat(tpPercent)
     const lotSize = parseFloat(lot)
     const entry = parseFloat(entryPrice)
+    const balanceValue = parseFloat(balance)
 
+    if (!balanceValue || balanceValue <= 0) return
     if (!side) return
     if (!sl || sl < 0.1 || sl > 100) return
     if (!tp || tp < 0.1 || tp > 100) return
@@ -56,17 +59,18 @@ export function Calculator() {
     setIsCalculating(true)
 
     try {
-      const { result: calcResult, balance, ask, bid } = await calculateSLTPFromApi({
+      const { result: calcResult, balance: responseBalance, ask, bid } = await calculateSLTPFromApi({
         sl,
         tp,
         lot: lotSize,
         symbol,
         side: side.toLowerCase(),
         price: entry,
+        balance: balanceValue,
       })
 
       setResult(calcResult)
-      setApiBalance(balance)
+      setApiBalance(responseBalance)
       setAskBid({ ask, bid })
     } catch (err) {
       toast({
@@ -92,6 +96,7 @@ export function Calculator() {
   }
 
   const handleReset = () => {
+    setBalance('')
     setSide('')
     setSlPercent('')
     setTpPercent('')
@@ -117,6 +122,24 @@ export function Calculator() {
 
             {/* Form */}
             <div className="p-6 space-y-5">
+              {/* Account Balance */}
+              <div className="space-y-2">
+                <Label htmlFor="balance">{t('accountBalance')}</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-medium">$</span>
+                  <Input
+                    id="balance"
+                    type="number"
+                    step="1"
+                    min="1"
+                    placeholder={t('accountBalancePlaceholder')}
+                    value={balance}
+                    onChange={(e) => setBalance(e.target.value)}
+                    className="pl-7"
+                  />
+                </div>
+              </div>
+
               {/* Side & Symbol Row */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
