@@ -54,7 +54,7 @@ export function Calculator() {
     if (!tp || tp < 0.1 || tp > 100) return
     if (!lotSize || lotSize <= 0) return
     if (!symbol) return
-    if (!entry || entry <= 0) return
+    // if (!entry || entry <= 0) return
 
     setIsCalculating(true)
 
@@ -65,7 +65,7 @@ export function Calculator() {
         lot: lotSize,
         symbol,
         side: side.toLowerCase(),
-        price: entry,
+        ...(entry > 0 ? { price: entry } : {}),
         balance: balanceValue,
       })
 

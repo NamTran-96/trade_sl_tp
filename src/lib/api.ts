@@ -15,7 +15,7 @@ export interface ApiCalculateRequest {
   lot: number
   symbol: string
   side: string
-  price: number
+  price?: number
   balance: number
 }
 
@@ -59,8 +59,8 @@ export async function calculateSLTPFromApi(
   const decimals = symbolConfig?.decimals ?? 5
   const pipSize = decimals >= 4 ? 0.0001 : 0.01
 
-  const slDelta = Math.abs(data.SL - params.price)
-  const tpDelta = Math.abs(data.TP - params.price)
+  const slDelta = Math.abs(data.SL - data.ask)
+  const tpDelta = Math.abs(data.TP - data.ask)
   const slPips = slDelta / pipSize
   const tpPips = tpDelta / pipSize
 
