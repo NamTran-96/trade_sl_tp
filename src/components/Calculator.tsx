@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { Copy, Check, TrendingUp, TrendingDown, Target } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -13,65 +12,57 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { getSymbolOptions, type Side, type CalculationResult, SUPPORTED_SYMBOLS } from '@/lib/calculations'
+import { getSymbolOptions, type Side, SUPPORTED_SYMBOLS } from '@/lib/calculations'
 import { calculateSLTPFromApi } from '@/lib/api'
 import { useToast } from '@/hooks/use-toast'
+import { useCalculatorStore } from '@/store/calculatorStore'
+
+// Inline error message — translates the Zod key via the "validation" namespace
+function FieldError({ msg }: { msg?: string }) {
+  const tV = useTranslations('validation')
+  if (!msg) return null
+  const text = tV.has(msg as Parameters<typeof tV>[0])
+    ? tV(msg as Parameters<typeof tV>[0])
+    : msg
+  return <p className="text-xs text-red-500 mt-1">{text}</p>
+}
 
 export function Calculator() {
   const t = useTranslations('calculator')
   const tResults = useTranslations('results')
   const { toast } = useToast()
 
-  // Form state
-  const [balance, setBalance] = useState('')
-  const [side, setSide] = useState<Side | ''>('')
-  const [slPercent, setSlPercent] = useState('')
-  const [tpPercent, setTpPercent] = useState('')
-  const [lot, setLot] = useState('')
-  const [symbol, setSymbol] = useState('')
-  const [entryPrice, setEntryPrice] = useState('')
-  
-  // Result state
-  const [result, setResult] = useState<CalculationResult | null>(null)
-  const [apiBalance, setApiBalance] = useState<number | null>(null)
-  const [askBid, setAskBid] = useState<{ ask: number; bid: number } | null>(null)
-  const [isCalculating, setIsCalculating] = useState(false)
-  const [copiedField, setCopiedField] = useState<string | null>(null)
+  const {
+    form, errors, result, apiBalance, askBid,
+    isCalculating, copiedField,
+    setField, validate, setResult, setIsCalculating, setCopiedField, reset,
+  } = useCalculatorStore()
 
   const symbolOptions = getSymbolOptions()
 
   const handleCalculate = async () => {
-    // Validation
-    const sl = parseFloat(slPercent)
-    const tp = parseFloat(tpPercent)
-    const lotSize = parseFloat(lot)
-    const entry = parseFloat(entryPrice)
-    const balanceValue = parseFloat(balance)
+    if (!validate()) return
 
-    if (!balanceValue || balanceValue <= 0) return
-    if (!side) return
-    if (!sl || sl < 0.1 || sl > 100) return
-    if (!tp || tp < 0.1 || tp > 100) return
-    if (!lotSize || lotSize <= 0) return
-    if (!symbol) return
-    // if (!entry || entry <= 0) return
+    const sl = parseFloat(form.slPercent)
+    const tp = parseFloat(form.tpPercent)
+    const lotSize = parseFloat(form.lot)
+    const balanceValue = parseFloat(form.balance)
+    const entry = form.entryPrice ? parseFloat(form.entryPrice) : undefined
 
     setIsCalculating(true)
-
     try {
-      const { result: calcResult, balance: responseBalance, ask, bid } = await calculateSLTPFromApi({
-        sl,
-        tp,
-        lot: lotSize,
-        symbol,
-        side: side.toLowerCase(),
-        ...(entry > 0 ? { price: entry } : {}),
-        balance: balanceValue,
-      })
+      const { result: calcResult, balance: responseBalance, ask, bid } =
+        await calculateSLTPFromApi({
+          sl,
+          tp,
+          lot: lotSize,
+          symbol: form.symbol,
+          side: (form.side as Side).toLowerCase(),
+          ...(entry && entry > 0 ? { price: entry } : {}),
+          balance: balanceValue,
+        })
 
-      setResult(calcResult)
-      setApiBalance(responseBalance)
-      setAskBid({ ask, bid })
+      setResult(calcResult, responseBalance, { ask, bid })
     } catch (err) {
       toast({
         title: 'Calculation Error',
@@ -87,28 +78,11 @@ export function Calculator() {
   const handleCopy = async (value: string, field: string) => {
     await navigator.clipboard.writeText(value)
     setCopiedField(field)
-    toast({
-      title: tResults('copied'),
-      variant: 'success',
-      duration: 2000
-    })
+    toast({ title: tResults('copied'), variant: 'success', duration: 2000 })
     setTimeout(() => setCopiedField(null), 2000)
   }
 
-  const handleReset = () => {
-    setBalance('')
-    setSide('')
-    setSlPercent('')
-    setTpPercent('')
-    setLot('')
-    setSymbol('')
-    setEntryPrice('')
-    setResult(null)
-    setApiBalance(null)
-    setAskBid(null)
-  }
-
-  const decimals = symbol ? SUPPORTED_SYMBOLS[symbol]?.decimals || 5 : 5
+  const decimals = form.symbol ? SUPPORTED_SYMBOLS[form.symbol]?.decimals || 5 : 5
 
   return (
     <section id="calculator" className="py-16 bg-gray-50">
@@ -124,7 +98,10 @@ export function Calculator() {
             <div className="p-6 space-y-5">
               {/* Account Balance */}
               <div className="space-y-2">
-                <Label htmlFor="balance">{t('accountBalance')}</Label>
+                <Label htmlFor="balance">
+                  {t('accountBalance')}
+                  <span className="text-red-600 ml-0.5">*</span>
+                </Label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-medium">$</span>
                   <Input
@@ -133,19 +110,24 @@ export function Calculator() {
                     step="1"
                     min="1"
                     placeholder={t('accountBalancePlaceholder')}
-                    value={balance}
-                    onChange={(e) => setBalance(e.target.value)}
+                    value={form.balance}
+                    onChange={(e) => setField('balance', e.target.value)}
+                    error={errors.balance}
                     className="pl-7"
                   />
                 </div>
+                <FieldError msg={errors.balance} />
               </div>
 
               {/* Side & Symbol Row */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>{t('side')}</Label>
-                  <Select value={side} onValueChange={(v) => setSide(v as Side)}>
-                    <SelectTrigger>
+                  <Label>
+                    {t('side')}
+                    <span className="text-red-600 ml-0.5">*</span>
+                  </Label>
+                  <Select value={form.side} onValueChange={(v) => setField('side', v)}>
+                    <SelectTrigger className={errors.side ? 'border-red-400' : ''}>
                       <SelectValue placeholder={t('selectSide')} />
                     </SelectTrigger>
                     <SelectContent>
@@ -163,12 +145,16 @@ export function Calculator() {
                       </SelectItem>
                     </SelectContent>
                   </Select>
+                  <FieldError msg={errors.side} />
                 </div>
 
                 <div className="space-y-2">
-                  <Label>{t('symbol')}</Label>
-                  <Select value={symbol} onValueChange={setSymbol}>
-                    <SelectTrigger>
+                  <Label>
+                    {t('symbol')}
+                    <span className="text-red-600 ml-0.5">*</span>
+                  </Label>
+                  <Select value={form.symbol} onValueChange={(v) => setField('symbol', v)}>
+                    <SelectTrigger className={errors.symbol ? 'border-red-400' : ''}>
                       <SelectValue placeholder={t('selectSymbol')} />
                     </SelectTrigger>
                     <SelectContent>
@@ -179,13 +165,17 @@ export function Calculator() {
                       ))}
                     </SelectContent>
                   </Select>
+                  <FieldError msg={errors.symbol} />
                 </div>
               </div>
 
               {/* SL & TP Row */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="slPercent">{t('slPercent')}</Label>
+                  <Label htmlFor="slPercent">
+                    {t('slPercent')}
+                    <span className="text-red-600 ml-0.5">*</span>
+                  </Label>
                   <div className="relative">
                     <Input
                       id="slPercent"
@@ -194,16 +184,21 @@ export function Calculator() {
                       min="0.1"
                       max="100"
                       placeholder={t('slPercentPlaceholder')}
-                      value={slPercent}
-                      onChange={(e) => setSlPercent(e.target.value)}
+                      value={form.slPercent}
+                      onChange={(e) => setField('slPercent', e.target.value)}
+                      error={errors.slPercent}
                       className="pr-8"
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">%</span>
                   </div>
+                  <FieldError msg={errors.slPercent} />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="tpPercent">{t('tpPercent')}</Label>
+                  <Label htmlFor="tpPercent">
+                    {t('tpPercent')}
+                    <span className="text-red-600 ml-0.5">*</span>
+                  </Label>
                   <div className="relative">
                     <Input
                       id="tpPercent"
@@ -212,40 +207,49 @@ export function Calculator() {
                       min="0.1"
                       max="100"
                       placeholder={t('tpPercentPlaceholder')}
-                      value={tpPercent}
-                      onChange={(e) => setTpPercent(e.target.value)}
+                      value={form.tpPercent}
+                      onChange={(e) => setField('tpPercent', e.target.value)}
+                      error={errors.tpPercent}
                       className="pr-8"
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">%</span>
                   </div>
+                  <FieldError msg={errors.tpPercent} />
                 </div>
               </div>
 
               {/* Lot & Entry Price Row */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="lot">{t('lot')}</Label>
+                  <Label htmlFor="lot">
+                    {t('lot')}
+                    <span className="text-red-600 ml-0.5">*</span>
+                  </Label>
                   <Input
                     id="lot"
                     type="number"
                     step="0.01"
                     min="0.01"
                     placeholder={t('lotPlaceholder')}
-                    value={lot}
-                    onChange={(e) => setLot(e.target.value)}
+                    value={form.lot}
+                    onChange={(e) => setField('lot', e.target.value)}
+                    error={errors.lot}
                   />
+                  <FieldError msg={errors.lot} />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="entryPrice">{t('entryPrice')}</Label>
+                  <Label htmlFor="entryPrice">
+                    {t('entryPrice')}
+                  </Label>
                   <Input
                     id="entryPrice"
                     type="number"
                     step="0.00001"
                     min="0"
                     placeholder={t('entryPricePlaceholder')}
-                    value={entryPrice}
-                    onChange={(e) => setEntryPrice(e.target.value)}
+                    value={form.entryPrice ?? ''}
+                    onChange={(e) => setField('entryPrice', e.target.value)}
                   />
                 </div>
               </div>
@@ -266,7 +270,7 @@ export function Calculator() {
                     t('calculate')
                   )}
                 </Button>
-                <Button variant="outline" onClick={handleReset}>
+                <Button variant="outline" onClick={reset}>
                   {t('reset')}
                 </Button>
               </div>
